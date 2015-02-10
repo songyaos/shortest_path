@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<project name="shortest_path" default="CreateJar">
+    <target name="CreateJar" description="Create Jar file">
+        <jar jarfile="shortest_path.jar" basedir="bin/" includes="shortest_path/*.class" />
+    </target>
+</project>
