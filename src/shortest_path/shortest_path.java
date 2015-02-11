@@ -10,6 +10,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -17,6 +19,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /*
@@ -146,7 +149,7 @@ public class shortest_path {
 		job.setReducerClass(Reduce.class);
 		
 		job.setInputFormatClass(KeyValueTextInputFormat.class);
-		job.setOutputFormatClass(TextOutputFormat.class);
+		job.setOutputFormatClass(SequenceFileOutputFormat.class);
 				
 				
 		if(fs.exists(tempPath)){
@@ -169,11 +172,72 @@ public class shortest_path {
 			writer.write(key+"-"+dist+","+path+","+neighbor+"\n");
 		}
 		writer.close();
-		fileReader.close();		
-				
-		FileInputFormat.addInputPath(job, new Path(TEMP_FILE));
+		fileReader.close();	
+		FileInputFormat.addInputPath(job, tempPath);
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 		job.waitForCompletion(true);
+		int index = 0;
+		Text  tempkey = new Text();
+		Text tempvalue = new Text();
+		SequenceFile.Reader reader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(args[1]+"/part-r-00000")));
+		while (reader.next( tempkey, tempvalue)){
+			System.out.println( tempkey.toString() +" : "+tempvalue.toString() );
+			
+		}
+		
+		while (index<=5){
+			
+			job = new Job(conf, "wikipath");//new job each time.
+			
+			job.setJarByClass(shortest_path.class);
+			
+			//Initialize file by the source node, 
+			//source node distance  = 0
+			//rest is infinitity  
+			
+			// Read original file, and create a temp file
+			// that contain extra info, such as distance and path
+			fileReader = new FileReader(INPUT_FILE);
+			buffer = new BufferedReader(fileReader);
+			
+			//Make sure new file is written to HDFS system
+			//fs = FileSystem.get(job.getConfiguration());
+			//tempPath = new Path(TEMP_FILE);
+			
+			//set mapper output type
+			job.setMapOutputKeyClass(Text.class);
+			job.setMapOutputValueClass(Text.class);	
+			
+			//set reducer output type
+			job.setOutputKeyClass(Text.class);
+			job.setOutputValueClass(Text.class);
+			
+			job.setMapperClass(Map.class);
+			job.setReducerClass(Reduce.class);
+			
+			job.setInputFormatClass(KeyValueTextInputFormat.class);
+			job.setOutputFormatClass(SequenceFileOutputFormat.class);
+			if ( index == 0){
+				FileInputFormat.addInputPath(job, new Path(args[1] + "/part-r-00000"));
+			}
+			else{FileInputFormat.addInputPath(job, new Path(args[1] + Integer.toString(index-1)));}
+			
+			FileOutputFormat.setOutputPath(job, new Path(args[1] + Integer.toString(index) ));
+			job.waitForCompletion(true);
+			
+			// output the current round of result
+			reader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(args[1]+"/part-r-00000")));
+			while (reader.next( tempkey, tempvalue)){
+				System.out.println( tempkey.toString() +" : "+tempvalue.toString() );
+				
+			}
+			
+			index = index+1;
+		}
+		reader.close();
+		
+		
+		//job.waitForCompletion(true);
 		
 	}
 
