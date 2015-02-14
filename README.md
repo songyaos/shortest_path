@@ -1,13 +1,15 @@
 # shortest_path
 
-a map reduce program to find the shortest path between web pages.
+a map reduce program to find the shortest path from the source node to any node reachable.
+
+if you want to find the path to a specific node, trivial changes would be needed to stop the search in time.
 
 The shortest_path.jar file(in the develop branch) can be used in the following way:
 
 1.If you run it on hadoop cluster
 
 hadoop jar shortest_path.jar shortest_path.shortest_path input_path output_path intermediate_path 
-source_page destination_page
+source_page 
 
   -parameters
     
@@ -31,4 +33,4 @@ source_page destination_page
     
   -output files format
     
-    page_id, source_destination_path, neighbors
+    destination, source_destination_path, neighbors
